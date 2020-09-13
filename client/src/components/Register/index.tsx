@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { TextField, Grid, GridSpacing, Button } from '@material-ui/core'
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
-import { Link } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import './style.css'
 import Card from '@material-ui/core/Card';
 import CardActions from '@material-ui/core/CardActions';
@@ -38,11 +38,14 @@ export default function Register() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
 
+    const history = useHistory()
+
     async function registerUser() {
         const res = await apiCall('/api/register', { email, password })
         console.log(res)
         if (res.status === "ok") {
             alert('You are logged in as newly registered')
+            history.push('/chat')
         } else {
             alert(res.error)
         }

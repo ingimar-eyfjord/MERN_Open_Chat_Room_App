@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { TextField, Grid, GridSpacing, Button } from '@material-ui/core'
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
-import { Link } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import './style.css'
 import Card from '@material-ui/core/Card';
 import CardActions from '@material-ui/core/CardActions';
@@ -37,7 +37,7 @@ export default function Login() {
 
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-
+    const history = useHistory()
     async function loginUser() {
 
         const res = await apiCall('/api/login', { email, password })
@@ -47,6 +47,7 @@ export default function Login() {
             // Change to refresh cookie token
             localStorage.setItem('token', res.data)
             alert('You are logged in')
+            history.push('/chat')
         } else {
             alert(res.error)
         }
