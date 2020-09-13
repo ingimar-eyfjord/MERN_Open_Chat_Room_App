@@ -48,17 +48,34 @@ export default function Chat() {
     useEffect(() => {
         const ws = new WebSocket('ws://localhost:1338/' + localStorage.getItem('token'))
 
+        ws.addEventListener('open', () => {
+            ws.send(JSON.stringify({
+                intent: 'old-messages',
+                count: 10
+            }))
+        }, { once: true })
+
         ws.addEventListener('error', () => {
             history.replace('/login?authError')
         })
         ws.addEventListener('message', (event) => {
             const data = event.data
-            const message: null | Message = processMessage(data)
+            const message: any = processMessage(data)
             if (!message) return
             if (message.intent === "chat") {
                 setChatMessages(oldMessages => {
-                    return [...oldMessages, message]
+                    return [...oldMessages, message as Message]
                 })
+            } else if (message.intent === 'old-messages') {
+                setChatMessages(
+                    message.data.map((item: any) => {
+                        return {
+                            user: item.email,
+                            subject: item.subject,
+                            message: item.message,
+                        }
+                    }).reverse()
+                )
             }
         })
         setWsRef(ws)
@@ -67,7 +84,11 @@ export default function Chat() {
         }
     }, [])
 
-
+    // Todo:: ad another action to load more messages
+    // 1. another click handler
+    // 2. should extract the smallest data og current messages
+    // 3. send new ws request with old messages but with date as property
+    // 4. append old-old-messages at the beginning of the message list 
     return (
         <div>
 

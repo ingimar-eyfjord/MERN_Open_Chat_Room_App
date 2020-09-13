@@ -1,12 +1,13 @@
 import WebSocket from 'ws';
 import { processMessage, CustomWebsocket, JWT_SECRET_TOKEN } from './utility'
-import Message from './models/messages'
-import { v4 as uuid } from 'uuid'
 import http from 'http'
 import jwt from 'jsonwebtoken'
+import { broadCastMessage, clients, retrieveAndSentMessage, setClients } from './messagesFunction';
+import { set } from 'mongoose';
+
 const server = http.createServer();
 const wss = new WebSocket.Server({ noServer: true });
-let clients: CustomWebsocket[] = []
+
 
 
 wss.on('connection', function connection(ws: CustomWebsocket) {
@@ -15,34 +16,26 @@ wss.on('connection', function connection(ws: CustomWebsocket) {
     // ws.connectionID = uuid()
     clients.push(ws)
     ws.on('close', () => {
-        clients = clients.filter((generalSocket) => generalSocket.connectionID !== ws.connectionID)
+        setClients(
+            clients.filter((generalSocket) => generalSocket.connectionID !== ws.connectionID)
+        )
     })
     ws.on('message', function incoming(payload) {
         const message = processMessage(payload.toString())
-        if (!message || message.intent !== 'chat') {
+        if (!message) {
             // corrupted message from Client
             // ignore
             return
         }
-        const NewMessage = new Message({
-            email: ws.connectionID,
-            subject: message.subject,
-            message: message.message,
-            date: Date.now()
-        })
-        NewMessage.save() // will queue task in background
-        // Broadcast the message to all clients.
-        for (let i = 0; i < clients.length; i++) {
-            const client = clients[i]
-            client.send(JSON.stringify({
-                subject: message.subject,
-                message: message.message,
-                user: ws.connectionID,
-                intent: 'chat'
 
-            }))
+        if (message.intent === 'chat') {
+            broadCastMessage(message, ws)
+        } else if (message.intent === 'old-messages') {
+            const count = message.count
+            if (!count) return
+            retrieveAndSentMessage(ws, count)
         }
-        // ws.send(JSON.stringify({ ...message, user: 'self', intent: 'chat' }))
+
     });
 });
 

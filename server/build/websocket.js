@@ -5,44 +5,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const ws_1 = __importDefault(require("ws"));
 const utility_1 = require("./utility");
-const messages_1 = __importDefault(require("./models/messages"));
 const http_1 = __importDefault(require("http"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const messagesFunction_1 = require("./messagesFunction");
 const server = http_1.default.createServer();
 const wss = new ws_1.default.Server({ noServer: true });
-let clients = [];
 wss.on('connection', function connection(ws) {
     // a single client has joined
     // ws.connectionID = uuid()
-    clients.push(ws);
+    messagesFunction_1.clients.push(ws);
     ws.on('close', () => {
-        clients = clients.filter((generalSocket) => generalSocket.connectionID !== ws.connectionID);
+        messagesFunction_1.setClients(messagesFunction_1.clients.filter((generalSocket) => generalSocket.connectionID !== ws.connectionID));
     });
     ws.on('message', function incoming(payload) {
         const message = utility_1.processMessage(payload.toString());
-        if (!message || message.intent !== 'chat') {
+        if (!message) {
             // corrupted message from Client
             // ignore
             return;
         }
-        const NewMessage = new messages_1.default({
-            email: ws.connectionID,
-            subject: message.subject,
-            message: message.message,
-            date: Date.now()
-        });
-        NewMessage.save(); // will queue task in background
-        // Broadcast the message to all clients.
-        for (let i = 0; i < clients.length; i++) {
-            const client = clients[i];
-            client.send(JSON.stringify({
-                subject: message.subject,
-                message: message.message,
-                user: ws.connectionID,
-                intent: 'chat'
-            }));
+        if (message.intent === 'chat') {
+            messagesFunction_1.broadCastMessage(message, ws);
         }
-        // ws.send(JSON.stringify({ ...message, user: 'self', intent: 'chat' }))
+        else if (message.intent === 'old-messages') {
+            const count = message.count;
+            if (!count)
+                return;
+            messagesFunction_1.retrieveAndSentMessage(ws, count);
+        }
     });
 });
 server.on('upgrade', function upgrade(request, socket, head) {
