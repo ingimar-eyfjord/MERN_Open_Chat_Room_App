@@ -1,0 +1,14 @@
+
+.LoginForm {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    display: flex;
+  }
+  
+.LoginForm > div{
+    margin-top: auto;
+    margin-bottom: auto;
+    padding: 0;
+  }
